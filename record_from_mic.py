@@ -1,14 +1,14 @@
 import pyaudio
 import wave
- 
+import constants as c
+
+
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 CHUNK = 1024
-RECORD_SECONDS = 5
 WAVE_OUTPUT_FILENAME = "file.wav"
  
-
 
 def record_from_mic():
     audio = pyaudio.PyAudio()
@@ -20,7 +20,7 @@ def record_from_mic():
     print("recording...")
     frames = []
     
-    for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
+    for i in range(0, int(RATE / CHUNK * c.RECORD_SECONDS)):
         data = stream.read(CHUNK)
         frames.append(data)
     print("finished recording")

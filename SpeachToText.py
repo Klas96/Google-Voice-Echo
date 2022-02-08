@@ -1,16 +1,12 @@
 import os
-from gtts import gTTS
-# import required module
-from playsound import playsound
-import pyaudio
-import wave
 from google.cloud import speech
-from record_from_mic import record_from_mic
 from google.cloud import texttospeech
+from playsound import playsound #TODO replace with pysound
+import constants as c
 
 
+from record_from_mic import record_from_mic
 
-# for playing note.wav file
 
 credential_path = "/home/klas/Documents/Programering/web/GoogleSpechTextAPI/key.json"
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
@@ -18,79 +14,67 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
 speach_to_text_client = speech.SpeechClient()
 text_to_speach_client = texttospeech.TextToSpeechClient()
 
+mic_recording_path = './file.wav'
+
+
+def spech_to_text() -> str:
+    pass
+
+
 def mimic_me():
+    '''
+    Records A audio sampel from the mic and translates it to text 
+    then translate it to audio and plays it back to you.
+    '''
+    #TODO Return audio buffer
+    speach_audio_buffer = record_from_mic()
 
-    # start Recording
+    with open(mic_recording_path, "rb") as audio_file:
+        speach_audio_buffer = audio_file.read()
 
-    record_from_mic()
-
-    with open(speech_file, "rb") as audio_file:
-        content = audio_file.read()
-
-    audio = speech.RecognitionAudio(content=content)
+    audio = speech.RecognitionAudio(content=speach_audio_buffer)
 
     config = speech.RecognitionConfig(
         encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=44100,
-        language_code="sv-SE",
+        sample_rate_hertz = 44100,
+        language_code = c.LANGUAGE,
+    )
+
+    response = speach_to_text_client.recognize(config=config, audio=audio)
+
+    say_this_string = ""
+    for result in response.results:
+
+        sepach_translate_ret = result.alternatives[0].transcript
+        
+        say_this_string = say_this_string + sepach_translate_ret
+    
+    synthesis_input = texttospeech.SynthesisInput(text=say_this_string)
+
+    voice = texttospeech.VoiceSelectionParams(
+        language_code = c.LANGUAGE, ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+    )
+
+    # Select the type of audio file you want returned
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding = texttospeech.AudioEncoding.MP3
+    )
+
+    # Perform the text-to-speech request on the text input with the selected
+    # voice parameters and audio file type
+    response = text_to_speach_client.synthesize_speech(
+        input = synthesis_input, voice=voice, audio_config=audio_config
     )
 
 
-    operation = speach_to_text_client.long_running_recognize(config=config, audio=audio)
+    mimic_audio_path = "output.mp3"
+    with open(mimic_audio_path, "wb") as out:
+        out.write(response.audio_content)
 
-    print("Waiting for operation to complete...")
-    response = operation.result(timeout=90)
+    print(say_this_string)
+    # Playing the converted file
+    playsound(mimic_audio_path)
 
-    # Text to Speach
-    speach_to_text_client
-    language = 'fr'
-    
-    
-    # Each result is for a consecutive portion of the audio. Iterate through
-    # them to get the transcripts for the entire audio file.
-    for result in response.results:
-        # The first alternative is the most likely one for this portion.
-        #print(u"Transcript: {}".format(result.alternatives[0].transcript))
-        say_this = result.alternatives[0].transcript
-        print(say_this)
-
-        # Set the text input to be synthesized
-        synthesis_input = texttospeech.SynthesisInput(text=say_this)
-
-        voice = texttospeech.VoiceSelectionParams(
-            language_code="sv-SV", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
-        )
-
-        # Select the type of audio file you want returned
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
-        )
-
-        # Perform the text-to-speech request on the text input with the selected
-        # voice parameters and audio file type
-        response = speach_to_text_client.synthesize_speech(
-            input=synthesis_input, voice=voice, audio_config=audio_config
-        )
-
-        # The response's audio_content is binary.
-        with open("output.mp3", "wb") as out:
-            # Write the response to the output file.
-            out.write(response.audio_content)
-            print('Audio content written to file "output.mp3"')
-
-        myobj = gTTS(text=say_this, lang=language, slow=False)
-
-        audio_file = "output.mp3"
-        myobj.save(audio_file)
-  
-        # Playing the converted file
-        playsound(audio_file)
-        #os.system("  " + audio_file)
-        #print("Confidence: {}".format(result.alternatives[0].confidence))
-
-
-
-speech_file = './file.wav'
 
 
 while True:
