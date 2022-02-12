@@ -21,6 +21,10 @@ def spech_to_text() -> str:
     pass
 
 
+def text_to_audio():
+    pass
+
+
 def mimic_me():
     '''
     Records A audio sampel from the mic and translates it to text 
